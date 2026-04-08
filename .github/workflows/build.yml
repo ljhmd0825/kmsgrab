@@ -1,21 +1,17 @@
-name: Auto Release kmsgrab aarch64
+name: Release kmsgrab aarch64
 
 on:
-  push:
-    branches:
-      - main  # 또는 사용자님의 기본 브랜치 명 (master 등)
-  workflow_dispatch: # 수동 실행 버튼도 활성화
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # 릴리즈를 쓰기 위한 권한
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Docker 레이어 캐싱 설정 (빌드 속도 향상)
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -26,7 +22,7 @@ jobs:
           file: ./Dockerfile
           tags: kms-builder:latest
           outputs: type=docker,dest=/tmp/kms-builder.tar
-          cache-from: type=gha # GitHub Actions 전용 캐시 사용 (가장 빠름)
+          cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Load Docker Image
@@ -36,17 +32,18 @@ jobs:
         run: |
           docker run --rm -v $(pwd):/build -w /build kms-builder:latest sh -c "
             export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig && \
-            aarch64-linux-gnu-gcc -O3 -s -o kmsgrab_aarch64 kmsgrab.c \
+            aarch64-linux-gnu-gcc -O3 -o kmsgrab_aarch64 kmsgrab.c \
             \$(pkg-config --cflags --libs libdrm libpng) \
-            -static -lpthread -lm -lz"
+            -static -lpthread -lm -lz && \
+            aarch64-linux-gnu-strip --strip-all kmsgrab_aarch64"
 
       - name: Auto Update Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: latest      # 태그 이름을 'latest'로 고정
-          name: Latest Build    # 릴리즈 제목
+          tag_name: latest
+          name: Latest Build
           draft: false
           prerelease: false
-          files: kmsgrab_aarch64
+          files: kmsgrab
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
