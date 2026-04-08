@@ -1,0 +1,32 @@
+name: Build kmsgrab for aarch64
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install cross-compiler and libraries
+        run: |
+          sudo apt update
+          sudo apt install -y gcc-aarch64-linux-gnu libdrm-dev:arm64 libpng-dev:arm64 zlib1g-dev:arm64 pkg-config
+          # Multi-arch 설정이 안 되어 있을 경우를 대비
+          sudo dpkg --add-architecture arm64
+          sudo apt update
+          sudo apt install -y libdrm-dev:arm64 libpng-dev:arm64 zlib1g-dev:arm64
+
+      - name: Compile kmsgrab (Static Build)
+        run: |
+          PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig \
+          aarch64-linux-gnu-gcc -O2 -o kmsgrab_aarch64 kmsgrab.c \
+          $(pkg-config --cflags --libs libdrm libpng) \
+          -static -lpthread -lm -lz
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kmsgrab-aarch64-binary
+          path: kmsgrab_aarch64
