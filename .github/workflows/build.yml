@@ -15,26 +15,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Multi-arch and Install Dependencies
-        run: |
-          # 1. 아키텍처 추가
-          sudo dpkg --add-architecture arm64
-
-          sudo sed -i 's/http:\/\/azure.archive.ubuntu.com/http:\/\/ports.ubuntu.com/g' /etc/apt/sources.list.d/arm64.list || \
-          echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $(lsb_release -sc) main restricted universe multiverse
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $(lsb_release -sc)-updates main restricted universe multiverse
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $(lsb_release -sc)-security main restricted universe multiverse" | sudo tee /etc/apt/sources.list.d/arm64.list
-
-          sudo sed -i 's/deb http/deb [arch=amd64] http/g' /etc/apt/sources.list
-          sudo sed -i 's/deb-src http/deb-src [arch=amd64] http/g' /etc/apt/sources.list
-
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu libdrm-dev:arm64 libpng-dev:arm64 zlib1g-dev:arm64 pkg-config
-
-      - name: Compile and Strip
-        run: |
-          export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig
-          aarch64-linux-gnu-gcc -O3 -s -o kmsgrab_aarch64 kmsgrab.c $(pkg-config --cflags --libs libdrm libpng) -static -lpthread -lm -lz
+      - name: Build in ARM64 Container
+        # QEMU를 사용하여 x86_64 위에서 arm64 컨테이너를 실행합니다.
+        uses: uraimo/run-on-arch-action@v2
+        with:
+          arch: aarch64
+          distro: ubuntu24.04
+          
+          # 컨테이너 내부에서 실행될 명령들
+          run: |
+            apt-get update
+            apt-get install -y build-essential libdrm-dev libpng-dev zlib1g-dev pkg-config
+            
+            # 빌드 (컨테이너 내부이므로 일반 gcc 사용)
+            gcc -O3 -s -o kmsgrab_aarch64 kmsgrab.c \
+              $(pkg-config --cflags --libs libdrm libpng) \
+              -static -lpthread -lm -lz
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
