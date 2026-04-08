@@ -32,9 +32,8 @@ jobs:
         run: |
           docker run --rm -v $(pwd):/build -w /build kms-builder:latest sh -c "
             export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig && \
-            aarch64-linux-gnu-gcc -O3 -o kmsgrab kmsgrab.c \
-            \$(pkg-config --cflags --libs libdrm libpng) \
-            -static -lpthread -lm -lz && \
+            aarch64-linux-gnu-gcc -O3 -s -o kmsgrab kmsgrab.c \
+            \$(pkg-config --cflags --libs libdrm libpng) && \
             aarch64-linux-gnu-strip --strip-all kmsgrab"
 
       - name: Auto Update Release
