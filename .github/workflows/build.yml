@@ -21,11 +21,13 @@ jobs:
 
       - name: Compile inside Docker
         run: |
-          # 사용자님의 Dockerfile 내 WORKDIR인 /build를 활용합니다.
-          docker run --rm -v $(pwd):/build kms-builder \
-          aarch64-linux-gnu-gcc -O3 -s -o kmsgrab_aarch64 kmsgrab.c \
-          $(pkg-config --cflags --libs libdrm libpng) \
-          -static -lpthread -lm -lz
+          docker run --rm -v $(pwd):/build -w /build kms-builder sh -c "
+            # 컨테이너 내부에서 arm64 pkgconfig 경로를 강제로 지정합니다.
+            export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig && \
+            aarch64-linux-gnu-gcc -O3 -s -o kmsgrab_aarch64 kmsgrab.c \
+            \$(pkg-config --cflags --libs libdrm libpng) \
+            -static -lpthread -lm -lz
+          "
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
