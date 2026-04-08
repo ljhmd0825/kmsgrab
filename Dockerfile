@@ -1,8 +1,8 @@
 FROM ubuntu:22.04
 
 RUN dpkg --add-architecture arm64 && \
-    sed -i 's/archive.ubuntu.com/ports.ubuntu.com/g' /etc/apt/sources.list && \
-    sed -i 's/security.ubuntu.com/ports.ubuntu.com/g' /etc/apt/sources.list && \
+    sed -i 's|http://archive.ubuntu.com/ubuntu|http://ports.ubuntu.com/ubuntu-ports|g' /etc/apt/sources.list && \
+    sed -i 's|http://security.ubuntu.com/ubuntu|http://ports.ubuntu.com/ubuntu-ports|g' /etc/apt/sources.list && \
     apt-get update && \
     apt-get install -y \
     gcc-aarch64-linux-gnu \
