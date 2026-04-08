@@ -1,38 +1,52 @@
-name: Release kmsgrab aarch64
+name: Auto Release kmsgrab aarch64
 
 on:
   push:
-    tags:
-      - 'v*'
-  workflow_dispatch:
+    branches:
+      - main  # 또는 사용자님의 기본 브랜치 명 (master 등)
+  workflow_dispatch: # 수동 실행 버튼도 활성화
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write # 릴리즈를 쓰기 위한 권한
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Docker 레이어 캐싱 설정 (빌드 속도 향상)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build Docker Image
-        # 맨 뒤의 마침표(.)가 빠지면 에러 납니다. 현재 경로를 컨텍스트로 지정합니다.
-        run: docker build -t kms-builder -f Dockerfile .
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: kms-builder:latest
+          outputs: type=docker,dest=/tmp/kms-builder.tar
+          cache-from: type=gha # GitHub Actions 전용 캐시 사용 (가장 빠름)
+          cache-to: type=gha,mode=max
+
+      - name: Load Docker Image
+        run: docker load -i /tmp/kms-builder.tar
 
       - name: Compile inside Docker
         run: |
-          docker run --rm -v $(pwd):/build -w /build kms-builder sh -c "
-            # 컨테이너 내부에서 arm64 pkgconfig 경로를 강제로 지정합니다.
+          docker run --rm -v $(pwd):/build -w /build kms-builder:latest sh -c "
             export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig && \
             aarch64-linux-gnu-gcc -O3 -s -o kmsgrab_aarch64 kmsgrab.c \
             \$(pkg-config --cflags --libs libdrm libpng) \
-            -static -lpthread -lm -lz
-          "
+            -static -lpthread -lm -lz"
 
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Auto Update Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: latest      # 태그 이름을 'latest'로 고정
+          name: Latest Build    # 릴리즈 제목
+          draft: false
+          prerelease: false
           files: kmsgrab_aarch64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
