@@ -15,10 +15,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build with Docker (Ubuntu 22.04 base)
+      - name: Build Docker Image
+        # 맨 뒤의 마침표(.)가 빠지면 에러 납니다. 현재 경로를 컨텍스트로 지정합니다.
+        run: docker build -t kms-builder -f Dockerfile .
+
+      - name: Compile inside Docker
         run: |
-          docker build -t kms-builder -f Dockerfile
-     
+          # 사용자님의 Dockerfile 내 WORKDIR인 /build를 활용합니다.
           docker run --rm -v $(pwd):/build kms-builder \
           aarch64-linux-gnu-gcc -O3 -s -o kmsgrab_aarch64 kmsgrab.c \
           $(pkg-config --cflags --libs libdrm libpng) \
