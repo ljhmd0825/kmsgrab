@@ -32,10 +32,10 @@ jobs:
         run: |
           docker run --rm -v $(pwd):/build -w /build kms-builder:latest sh -c "
             export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig && \
-            aarch64-linux-gnu-gcc -O3 -o kmsgrab_aarch64 kmsgrab.c \
+            aarch64-linux-gnu-gcc -O3 -o kmsgrab kmsgrab.c \
             \$(pkg-config --cflags --libs libdrm libpng) \
             -static -lpthread -lm -lz && \
-            aarch64-linux-gnu-strip --strip-all kmsgrab_aarch64"
+            aarch64-linux-gnu-strip --strip-all kmsgrab"
 
       - name: Auto Update Release
         uses: softprops/action-gh-release@v1
